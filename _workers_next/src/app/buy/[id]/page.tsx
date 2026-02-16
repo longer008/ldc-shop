@@ -2,10 +2,9 @@ import { notFound } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { BuyContent } from "@/components/buy-content"
 import { BuyRestricted } from "@/components/buy-restricted"
-import { cancelExpiredOrders, cleanupExpiredCardsIfNeeded, getProduct, getProductReviews, getProductRating, canUserReview, getProductVisibility, getLiveCardStats } from "@/lib/db/queries"
+import { getProduct, getProductReviews, canUserReview, getProductVisibility, getLiveCardStats } from "@/lib/db/queries"
 import { getEmailSettings } from "@/lib/email"
 import { INFINITE_STOCK } from "@/lib/constants"
-import { after } from "next/server"
 
 interface BuyPageProps {
     params: Promise<{ id: string }>
@@ -16,14 +15,6 @@ export default async function BuyPage({ params }: BuyPageProps) {
     const session = await auth()
     const isLoggedIn = !!session?.user
     const trustLevel = Number.isFinite(Number(session?.user?.trustLevel)) ? Number(session?.user?.trustLevel) : 0
-
-    // Keep cleanup behavior, but move it off the critical render path.
-    after(async () => {
-        await Promise.allSettled([
-            cleanupExpiredCardsIfNeeded(undefined, id),
-            cancelExpiredOrders({ productId: id }),
-        ])
-    })
 
     // Run all queries in parallel for better performance
     const [product, reviews, emailSettings] = await Promise.all([

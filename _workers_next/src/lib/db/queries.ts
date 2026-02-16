@@ -10,6 +10,32 @@ let dbInitialized = false;
 let loginUsersSchemaReady = false;
 let wishlistTablesReady = false;
 const CURRENT_SCHEMA_VERSION = 14;
+type ColumnEnsureKey = 'products' | 'orders' | 'cards' | 'loginUsers';
+const columnEnsureState: Record<ColumnEnsureKey, { ready: boolean; pending: Promise<void> | null }> = {
+    products: { ready: false, pending: null },
+    orders: { ready: false, pending: null },
+    cards: { ready: false, pending: null },
+    loginUsers: { ready: false, pending: null },
+};
+
+async function ensureColumnsOnce(key: ColumnEnsureKey, task: () => Promise<void>) {
+    const state = columnEnsureState[key];
+    if (state.ready) return;
+    if (state.pending) {
+        await state.pending;
+        return;
+    }
+    const pending = (async () => {
+        await task();
+        state.ready = true;
+    })();
+    state.pending = pending;
+    try {
+        await pending;
+    } finally {
+        state.pending = null;
+    }
+}
 
 async function ensureCardKeyDuplicatesAllowed() {
     try {
@@ -347,35 +373,43 @@ async function ensureDatabaseInitialized() {
 }
 
 async function ensureProductsColumns() {
-    await safeAddColumn('products', 'compare_at_price', 'TEXT');
-    await safeAddColumn('products', 'is_hot', 'INTEGER DEFAULT 0');
-    await safeAddColumn('products', 'purchase_warning', 'TEXT');
-    await safeAddColumn('products', 'is_shared', 'INTEGER DEFAULT 0');
-    await safeAddColumn('products', 'visibility_level', 'INTEGER DEFAULT -1');
-    await safeAddColumn('products', 'stock_count', 'INTEGER DEFAULT 0');
-    await safeAddColumn('products', 'locked_count', 'INTEGER DEFAULT 0');
-    await safeAddColumn('products', 'sold_count', 'INTEGER DEFAULT 0');
-    await safeAddColumn('products', 'rating', 'REAL DEFAULT 0');
-    await safeAddColumn('products', 'review_count', 'INTEGER DEFAULT 0');
+    await ensureColumnsOnce('products', async () => {
+        await safeAddColumn('products', 'compare_at_price', 'TEXT');
+        await safeAddColumn('products', 'is_hot', 'INTEGER DEFAULT 0');
+        await safeAddColumn('products', 'purchase_warning', 'TEXT');
+        await safeAddColumn('products', 'is_shared', 'INTEGER DEFAULT 0');
+        await safeAddColumn('products', 'visibility_level', 'INTEGER DEFAULT -1');
+        await safeAddColumn('products', 'stock_count', 'INTEGER DEFAULT 0');
+        await safeAddColumn('products', 'locked_count', 'INTEGER DEFAULT 0');
+        await safeAddColumn('products', 'sold_count', 'INTEGER DEFAULT 0');
+        await safeAddColumn('products', 'rating', 'REAL DEFAULT 0');
+        await safeAddColumn('products', 'review_count', 'INTEGER DEFAULT 0');
+    });
 }
 
 async function ensureOrdersColumns() {
-    await safeAddColumn('orders', 'points_used', 'INTEGER DEFAULT 0 NOT NULL');
-    await safeAddColumn('orders', 'current_payment_id', 'TEXT');
-    await safeAddColumn('orders', 'payee', 'TEXT');
-    await safeAddColumn('orders', 'card_ids', 'TEXT');
+    await ensureColumnsOnce('orders', async () => {
+        await safeAddColumn('orders', 'points_used', 'INTEGER DEFAULT 0 NOT NULL');
+        await safeAddColumn('orders', 'current_payment_id', 'TEXT');
+        await safeAddColumn('orders', 'payee', 'TEXT');
+        await safeAddColumn('orders', 'card_ids', 'TEXT');
+    });
 }
 
 async function ensureCardsColumns() {
-    await safeAddColumn('cards', 'reserved_order_id', 'TEXT');
-    await safeAddColumn('cards', 'reserved_at', 'INTEGER');
-    await safeAddColumn('cards', 'expires_at', 'INTEGER');
+    await ensureColumnsOnce('cards', async () => {
+        await safeAddColumn('cards', 'reserved_order_id', 'TEXT');
+        await safeAddColumn('cards', 'reserved_at', 'INTEGER');
+        await safeAddColumn('cards', 'expires_at', 'INTEGER');
+    });
 }
 
 async function ensureLoginUsersColumns() {
-    await safeAddColumn('login_users', 'last_checkin_at', 'INTEGER');
-    await safeAddColumn('login_users', 'consecutive_days', 'INTEGER DEFAULT 0');
-    await safeAddColumn('login_users', 'desktop_notifications_enabled', 'INTEGER DEFAULT 0');
+    await ensureColumnsOnce('loginUsers', async () => {
+        await safeAddColumn('login_users', 'last_checkin_at', 'INTEGER');
+        await safeAddColumn('login_users', 'consecutive_days', 'INTEGER DEFAULT 0');
+        await safeAddColumn('login_users', 'desktop_notifications_enabled', 'INTEGER DEFAULT 0');
+    });
 }
 
 export async function ensureLoginUsersSchema() {
@@ -1871,7 +1905,10 @@ export async function cancelExpiredOrders(filters: { productId?: string; userId?
     const orderId = filters.orderId ?? null;
 
     try {
-        await ensureOrdersColumns()
+        await Promise.all([
+            ensureOrdersColumns(),
+            ensureCardsColumns(),
+        ])
     } catch (error: any) {
         if (!isMissingTableOrColumn(error)) throw error
     }
@@ -1893,13 +1930,6 @@ export async function cancelExpiredOrders(filters: { productId?: string; userId?
 
         const orderIds = candidates.map((row) => row.orderId).filter(Boolean);
         if (!orderIds.length) return orderIds;
-
-        try {
-            await db.run(sql.raw(`ALTER TABLE cards ADD COLUMN reserved_order_id TEXT`));
-        } catch { /* duplicate column */ }
-        try {
-            await db.run(sql.raw(`ALTER TABLE cards ADD COLUMN reserved_at INTEGER`));
-        } catch { /* duplicate column */ }
 
         for (const expired of candidates) {
             const expiredOrderId = expired.orderId;
