@@ -560,7 +560,19 @@
             "selectedCount": "Selected: {{count}}",
             "confirmBatchDelete": "Confirm delete {{count}} items?",
             "confirmAddTitle": "Confirm adding cards",
-            "confirmAddDescription": "You are about to add {{count}} card(s). Continue?"
+            "confirmAddDescription": "You are about to add {{count}} card(s). Continue?",
+            "apiTitle": "Card API Auto Refill",
+            "apiHint": "After saving, the system will try to pull 1 card immediately. It will also auto-refill 1 card after each successful delivery.",
+            "apiUrl": "API URL",
+            "apiToken": "API Token (optional)",
+            "apiTokenPlaceholder": "Leave empty to skip Authorization header",
+            "apiEnabled": "Enabled",
+            "apiDisabled": "Disabled",
+            "apiPullOne": "Pull 1 Card",
+            "apiPullSuccess": "Pulled 1 card from API",
+            "apiPullFailed": "API pull failed",
+            "apiAutoPulled": "Config saved and 1 card was auto-pulled",
+            "apiAutoPullFailed": "Config saved but auto-pull failed"
         },
         "productForm": {
             "addTitle": "Add New Product",

@@ -8,6 +8,7 @@ import { sendTelegramMessage } from "@/lib/notifications"
 import { revalidatePath, updateTag } from "next/cache"
 import { setSetting, getSetting, recalcProductAggregates, recalcProductAggregatesForMany, getProductForAdmin } from "@/lib/db/queries"
 import { isAdminUsername } from "@/lib/admin-auth"
+import { pullOneCardFromApi, saveProductCardApiConfig } from "@/lib/card-api"
 import { unstable_noStore } from "next/cache"
 
 export async function checkAdmin() {
@@ -320,6 +321,98 @@ export async function deleteCards(cardIds: number[]) {
     revalidatePath('/')
     updateTag('home:products')
     updateTag('home:product-categories')
+}
+
+export async function saveCardsApiConfig(productId: string, apiUrl: string, apiToken: string, enabled: boolean) {
+    await checkAdmin()
+
+    const id = String(productId || "").trim()
+    if (!id) throw new Error("Invalid product id")
+
+    const url = String(apiUrl || "").trim()
+    const token = String(apiToken || "").trim()
+    const safeEnabled = !!enabled
+
+    if (safeEnabled && !url) {
+        throw new Error("API URL is required")
+    }
+
+    if (url.length > 1000) {
+        throw new Error("API URL is too long")
+    }
+    if (token.length > 1000) {
+        throw new Error("API token is too long")
+    }
+
+    if (url) {
+        try {
+            // Validate URL format early to avoid runtime fetch failures.
+            void new URL(url)
+        } catch {
+            throw new Error("Invalid API URL")
+        }
+    }
+
+    await saveProductCardApiConfig(id, {
+        enabled: safeEnabled,
+        url,
+        token,
+    })
+
+    let autoPulled = false
+    let autoPullError: string | null = null
+    if (safeEnabled && url) {
+        const pullResult = await pullOneCardFromApi(id)
+        if (pullResult.ok) {
+            autoPulled = true
+            try {
+                await recalcProductAggregates(id)
+            } catch {
+                // best effort
+            }
+        } else if (!pullResult.skipped) {
+            autoPullError = pullResult.error || "api_pull_failed"
+        }
+    }
+
+    revalidatePath(`/admin/cards/${id}`)
+    revalidatePath('/admin/products')
+    revalidatePath('/admin/settings')
+    revalidatePath('/')
+    updateTag('home:products')
+    updateTag('home:product-categories')
+
+    return {
+        success: true,
+        autoPulled,
+        autoPullError,
+    }
+}
+
+export async function pullCardFromApi(productId: string) {
+    await checkAdmin()
+    const id = String(productId || "").trim()
+    if (!id) throw new Error("Invalid product id")
+
+    const result = await pullOneCardFromApi(id)
+    if (!result.ok) {
+        throw new Error(result.error || "api_pull_failed")
+    }
+
+    try {
+        await recalcProductAggregates(id)
+    } catch {
+        // best effort
+    }
+
+    revalidatePath(`/admin/cards/${id}`)
+    revalidatePath('/admin/products')
+    revalidatePath('/admin/settings')
+    revalidatePath('/')
+    updateTag('home:products')
+    updateTag('home:product-categories')
+
+    return { success: true, cardKey: result.cardKey || null }
 }
 
 export async function saveShopName(rawName: string) {
