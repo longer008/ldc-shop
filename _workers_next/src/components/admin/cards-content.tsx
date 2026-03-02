@@ -209,7 +209,7 @@ export function CardsContent({ productId, productName, unusedCards, apiConfig }:
                         <Input
                             value={apiUrl}
                             onChange={(e) => setApiUrl(e.target.value)}
-                            placeholder="https://example.com/api/card?productId={productId}"
+                            placeholder="https://example.com/api/card"
                             disabled={savingApi || pullingApi}
                         />
                     </div>

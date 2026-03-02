@@ -13,17 +13,10 @@ function keyOf(productId: string, field: "enabled" | "url" | "token") {
     return `cards_api_${field}_${productId}`
 }
 
-function resolveApiUrl(rawUrl: string, productId: string): string {
+function resolveApiUrl(rawUrl: string): string {
     const trimmed = rawUrl.trim()
     if (!trimmed) return ""
-    if (trimmed.includes("{productId}")) {
-        return trimmed.replaceAll("{productId}", encodeURIComponent(productId))
-    }
-    const url = new URL(trimmed)
-    if (!url.searchParams.has("productId")) {
-        url.searchParams.set("productId", productId)
-    }
-    return url.toString()
+    return new URL(trimmed).toString()
 }
 
 function extractCardKey(payload: any): string {
@@ -121,14 +114,13 @@ export async function pullOneCardFromApi(productId: string): Promise<{
 
     let requestUrl = ""
     try {
-        requestUrl = resolveApiUrl(config.url, productId)
+        requestUrl = resolveApiUrl(config.url)
     } catch {
         return { ok: false, error: "api_url_invalid" }
     }
 
     const headers: Record<string, string> = {
         Accept: "application/json, text/plain;q=0.9, */*;q=0.8",
-        "x-product-id": productId,
     }
     if (config.token) {
         headers.Authorization = `Bearer ${config.token}`
