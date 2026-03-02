@@ -198,95 +198,97 @@ export function CardsContent({ productId, productName, unusedCards, apiConfig }:
                 </div>
             </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>{t('admin.cards.apiTitle')}</CardTitle>
-                    <CardDescription>{t('admin.cards.apiHint')}</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="grid gap-2">
-                        <label className="text-sm font-medium">{t('admin.cards.apiUrl')}</label>
-                        <Input
-                            value={apiUrl}
-                            onChange={(e) => setApiUrl(e.target.value)}
-                            placeholder="https://example.com/api/card"
-                            disabled={savingApi || pullingApi}
-                        />
-                    </div>
-                    <div className="grid gap-2">
-                        <label className="text-sm font-medium">{t('admin.cards.apiToken')}</label>
-                        <Input
-                            type="password"
-                            value={apiToken}
-                            onChange={(e) => setApiToken(e.target.value)}
-                            placeholder={t('admin.cards.apiTokenPlaceholder')}
-                            disabled={savingApi || pullingApi}
-                        />
-                    </div>
-                    <div className="flex flex-wrap items-center gap-3">
-                        <Button
-                            variant={apiEnabled ? "default" : "outline"}
-                            size="sm"
-                            onClick={handleToggleApiEnabled}
-                            disabled={savingApi || pullingApi || togglingApiEnabled}
-                        >
-                            {apiEnabled ? t('admin.cards.apiEnabled') : t('admin.cards.apiDisabled')}
-                        </Button>
-                        <Button
-                            variant="outline"
-                            onClick={handleSaveApiConfig}
-                            disabled={savingApi || pullingApi || togglingApiEnabled}
-                        >
-                            {savingApi ? t('common.processing') : t('common.save')}
-                        </Button>
-                        <Button
-                            onClick={handlePullOneCard}
-                            disabled={pullingApi || savingApi || togglingApiEnabled || !apiEnabled}
-                        >
-                            {pullingApi ? t('common.processing') : t('admin.cards.apiPullOne')}
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
-
             <div className="grid md:grid-cols-2 gap-8">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>{t('admin.cards.addCards')}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <form
-                            ref={formRef}
-                            onSubmit={(event) => {
-                                event.preventDefault()
-                                if (submitting) return
-                                const formData = new FormData(event.currentTarget)
-                                handleOpenConfirm(formData)
-                            }}
-                            className="space-y-4"
-                        >
-                            <input type="hidden" name="product_id" value={productId} />
-                            <Textarea name="cards" placeholder={t('admin.cards.placeholder')} rows={10} className="font-mono text-sm" required disabled={submitting} />
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">{t('admin.cards.expiryLabel')}</label>
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div className="space-y-1">
-                                        <label className="text-xs text-muted-foreground">{t('admin.cards.expiryHours')}</label>
-                                        <Input name="expires_hours" type="number" min="0" step="1" disabled={submitting} />
+                <div className="space-y-8">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>{t('admin.cards.addCards')}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <form
+                                ref={formRef}
+                                onSubmit={(event) => {
+                                    event.preventDefault()
+                                    if (submitting) return
+                                    const formData = new FormData(event.currentTarget)
+                                    handleOpenConfirm(formData)
+                                }}
+                                className="space-y-4"
+                            >
+                                <input type="hidden" name="product_id" value={productId} />
+                                <Textarea name="cards" placeholder={t('admin.cards.placeholder')} rows={10} className="font-mono text-sm" required disabled={submitting} />
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">{t('admin.cards.expiryLabel')}</label>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="space-y-1">
+                                            <label className="text-xs text-muted-foreground">{t('admin.cards.expiryHours')}</label>
+                                            <Input name="expires_hours" type="number" min="0" step="1" disabled={submitting} />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-xs text-muted-foreground">{t('admin.cards.expiryMinutes')}</label>
+                                            <Input name="expires_minutes" type="number" min="0" max="59" step="1" disabled={submitting} />
+                                        </div>
                                     </div>
-                                    <div className="space-y-1">
-                                        <label className="text-xs text-muted-foreground">{t('admin.cards.expiryMinutes')}</label>
-                                        <Input name="expires_minutes" type="number" min="0" max="59" step="1" disabled={submitting} />
-                                    </div>
+                                    <p className="text-xs text-muted-foreground">{t('admin.cards.expiryHint')}</p>
                                 </div>
-                                <p className="text-xs text-muted-foreground">{t('admin.cards.expiryHint')}</p>
+                                <Button type="submit" className="w-full" disabled={submitting}>
+                                    {submitting ? t('common.processing') : t('common.add')}
+                                </Button>
+                            </form>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>{t('admin.cards.apiTitle')}</CardTitle>
+                            <CardDescription>{t('admin.cards.apiHint')}</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="grid gap-2">
+                                <label className="text-sm font-medium">{t('admin.cards.apiUrl')}</label>
+                                <Input
+                                    value={apiUrl}
+                                    onChange={(e) => setApiUrl(e.target.value)}
+                                    placeholder="https://example.com/api/card"
+                                    disabled={savingApi || pullingApi}
+                                />
                             </div>
-                            <Button type="submit" className="w-full" disabled={submitting}>
-                                {submitting ? t('common.processing') : t('common.add')}
-                            </Button>
-                        </form>
-                    </CardContent>
-                </Card>
+                            <div className="grid gap-2">
+                                <label className="text-sm font-medium">{t('admin.cards.apiToken')}</label>
+                                <Input
+                                    type="password"
+                                    value={apiToken}
+                                    onChange={(e) => setApiToken(e.target.value)}
+                                    placeholder={t('admin.cards.apiTokenPlaceholder')}
+                                    disabled={savingApi || pullingApi}
+                                />
+                            </div>
+                            <div className="flex flex-wrap items-center gap-3">
+                                <Button
+                                    variant={apiEnabled ? "default" : "outline"}
+                                    size="sm"
+                                    onClick={handleToggleApiEnabled}
+                                    disabled={savingApi || pullingApi || togglingApiEnabled}
+                                >
+                                    {apiEnabled ? t('admin.cards.apiEnabled') : t('admin.cards.apiDisabled')}
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    onClick={handleSaveApiConfig}
+                                    disabled={savingApi || pullingApi || togglingApiEnabled}
+                                >
+                                    {savingApi ? t('common.processing') : t('common.save')}
+                                </Button>
+                                <Button
+                                    onClick={handlePullOneCard}
+                                    disabled={pullingApi || savingApi || togglingApiEnabled || !apiEnabled}
+                                >
+                                    {pullingApi ? t('common.processing') : t('admin.cards.apiPullOne')}
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
 
                 <Card>
                     <CardHeader>
