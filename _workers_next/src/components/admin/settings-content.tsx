@@ -10,8 +10,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { TrendingUp, ShoppingCart, CreditCard, Package, Users } from "lucide-react"
 import { saveShopName, saveShopDescription, saveShopLogo, saveShopFooter, saveThemeColor, saveLowStockThreshold, saveCheckinReward, saveCheckinEnabled, saveWishlistEnabled, saveNoIndex, saveRefundReclaimCards, saveRegistryHideNav } from "@/actions/admin"
-import { checkForUpdates } from "@/actions/update-check"
 import { joinRegistry, leaveRegistry } from "@/actions/registry"
+import { checkForUpdatesClient, type ClientUpdateCheckResult } from "@/lib/update-check-client"
 import { toast } from "sonner"
 
 interface Stats {
@@ -38,15 +38,10 @@ interface AdminSettingsContentProps {
     registryHideNav: boolean
     registryOptIn: boolean
     registryEnabled: boolean
+    currentVersion: string
 }
 
-interface UpdateInfo {
-    hasUpdate: boolean
-    currentVersion: string
-    latestVersion: string | null
-    releaseUrl: string | null
-    error?: string
-}
+type UpdateInfo = ClientUpdateCheckResult
 
 const THEME_COLORS = [
     { value: 'black', hue: 0, chroma: 0, preview: 'oklch(0.18 0 0)' },
@@ -64,7 +59,7 @@ const THEME_COLORS = [
     { value: 'pink', hue: 330 },
 ]
 
-export function AdminSettingsContent({ stats, shopName, shopDescription, shopLogo, shopFooter, themeColor, visitorCount, lowStockThreshold, checkinReward, checkinEnabled, wishlistEnabled, noIndexEnabled, refundReclaimCards, registryHideNav, registryOptIn, registryEnabled }: AdminSettingsContentProps) {
+export function AdminSettingsContent({ stats, shopName, shopDescription, shopLogo, shopFooter, themeColor, visitorCount, lowStockThreshold, checkinReward, checkinEnabled, wishlistEnabled, noIndexEnabled, refundReclaimCards, registryHideNav, registryOptIn, registryEnabled, currentVersion }: AdminSettingsContentProps) {
     const { t } = useI18n()
 
     // State
@@ -258,7 +253,7 @@ export function AdminSettingsContent({ stats, shopName, shopDescription, shopLog
     const handleCheckUpdate = async () => {
         setCheckingUpdate(true)
         try {
-            const result = await checkForUpdates()
+            const result = await checkForUpdatesClient(currentVersion)
             setUpdateInfo(result)
             if (result.error) {
                 toast.error(t('update.checkFailed'))
